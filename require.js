@@ -879,13 +879,10 @@ void function init() {
 
 
   function execRequireModule(info, complete) {
-    var hash = info.originalPath.match(/#[\s\S]*$/), methodName, params, methodsMatch;
-    if (hash) {
-      methodsMatch = hash.match(/\.([a-zA-Z0-9_]+)\(([^()]*)\)/);
-      if (methodsMatch) {
-        methodName = methodsMatch[1];
-        params = methodsMatch[2].trim();
-      }
+    var methodsMatch = info.originalPath.match(/#[\s\S]*\.([a-zA-Z0-9_]+)\(([^()]*)\)[\s\S]*$/), methodName, params;
+    if (methodsMatch) {
+      methodName = methodsMatch[1];
+      params = methodsMatch[2].trim();
     }
     if (!methodName) {
       methodsMatch = info.path.match(/\.([a-zA-Z0-9]+)(\?[\s\S]*)*$/);
