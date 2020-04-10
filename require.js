@@ -493,9 +493,7 @@ void function init() {
 
 
     }*/
-    var callback;
-
-    callback = function (define, state/*, errArr*/) {
+    var callback = function (define, state/*, errArr*/) {
       var path = currentPath, id = privateModule[moduleNameId], ret, module;
 
       if (state) {
