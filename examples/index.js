@@ -37,6 +37,8 @@ define(['dep', "dep1", "dep2", "@dep4Alias"], function (dep, dep1, dep2, dep3, _
   this.module.exports.key3 = 3;
   this.module.exports.key4 = 4;
   //等同于
+  this.module.exports = {key3: 3, key4: 4};
+   //等同于
   this.exports = {key3: 3, key4: 4};
   //
   //如果没有设置  module.exports 或 this.module.exports 将使用 返回值作为导出的模块
