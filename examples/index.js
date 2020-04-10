@@ -60,21 +60,21 @@ module.syncs = {
 /// 引入 id 为 https://server.domain/examples/dep3AliasFinal.js 的模块 dep2
 /// 引入 id 为 https://server.domain/examples/dep5AliasFinal.js 的模块 dep3
 require(['dep', "dep1", "dep2", "@dep4Alias",/*depMap 可选*/{dep1: {deps: ['des']}, dep2: {params: {param: '重置参数'}, path: '@dep2Alias'}}], true);
-module.syncs = function (require,dep, dep1, dep2, dep3) {
+module.syncs = function (require, dep, dep1, dep2, dep3) {
 };
 //等同于
 module.syncs = {
   name: '',
-  require: require(['dep', "dep1", "dep2", "@dep4Alias"],false),
+  require: require(['dep', "dep1", "dep2", "@dep4Alias"], false),
   depMap: {dep1: {deps: ['des']}, dep2: {params: {param: '重置参数'}, path: '@dep2Alias'}},//depMap 可选
-  define: function (require,dep, dep1, dep2, dep3) {
+  define: function (require, dep, dep1, dep2, dep3) {
   }
 };
 
 /// 引入 id 为 https://server.domain/examples/currentDir/dep.js 的模块
 /// 生成 id 为 https://server.domain/examples/path.js 的模块
 define("path", ["dep"], function (dep, require) {
- 
+
 });
 
 /// 引入 id 为 https://server.domain/examples/currentDir/dep.js 的模块
@@ -85,3 +85,26 @@ define("//server2.domain/path", ["dep"], function (dep, require) {
 /// 生成 id 为 http://server2.domain/path.js 的模块
 define("http://server2.domain/path", ["dep"], function (dep, require) {
 });
+// plugin_name = /[a-zA-z0-9_]+/
+module.plugins.plugin_name = function (info = {
+  params: {},
+  originalParams: {},
+  notCache: true,
+  canCache: false,
+  deps: null,
+  originalPath: '/path.js#!cache .plugin_name(paramsJson)',
+  path: "http://server.domain/path.js"
+}, complete, paramsJson) {
+  JSON.parse(paramsJson);
+  var exports = {}, error = null;
+  if (info.canCache) {
+    module.update(info.path, exports);
+    error=false;
+  }
+  if (!error) {
+    complete(exports);
+  } else {
+    error = {path: info.path, type: '', error: error};
+    complete(exports, error);
+  }
+};
