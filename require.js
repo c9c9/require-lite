@@ -940,9 +940,8 @@ void function init() {
   };
 
   publicRequire.ACDM = true;
-  exportsCache.require = {value: publicRequire};
-  exportsCache.module = {value: publicModule};
-
+  cacheModule('require', publicRequire);
+  cacheModule('module', publicModule);
   if (mainPath) {
     requireModule(mainPath);
   }
