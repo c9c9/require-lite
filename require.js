@@ -857,6 +857,9 @@ void function init() {
         path: toAbsJsPath(path, currentDir)
       };
       if (params !== UNDEFINED) {//覆盖 参数
+        if (info.params !== UNDEFINED) {
+          info.originalParams = info.params;
+        }
         info.params = params;
       }
     }
