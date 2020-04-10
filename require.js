@@ -109,7 +109,7 @@ void function init() {
     isLock = 'isLock_' + mrId;
 
   var globalConfig = {
-    timeout: 12e3,
+    timeout: 20e3,
     baseUrl: currentBaseUrl,
     alias: {}
   }, exportsCache = {};
@@ -495,7 +495,7 @@ void function init() {
     }*/
     var callback;
 
-    callback = function (define, state, errArr) {
+    callback = function (define, state/*, errArr*/) {
       var path = currentPath, id = privateModule[moduleNameId], ret, module;
 
       if (state) {
@@ -521,16 +521,17 @@ void function init() {
       //     }
       //   }
       // }
-      execCallback(index, ret, errArr)
+      //execCallback(index, ret, errArr)
+      execCallback(index, ret)
     };
 
     var _thisArg = new ModuleArg(privateModule, privateRequire);
     if (_require && _require.length) {
-      requireModule(currentDir, isArray(_require) ? _require : [_require], _depMap, function (args, err) {
+      requireModule(currentDir, isArray(_require) ? _require : [_require], _depMap, function (args/*, err*/) {
         args[isDefineMethod ? 'push' : 'unshift'](_thisArg.require);
         var ret = tryCallRet(_define, args, 1, _thisArg);
         _define = isDefineMethod = _thisArg = null;
-        callback(ret, ret[0], err);
+        callback(ret, ret[0]/*, err*/);
       })
     } else {
       var ret = tryCallRet(_define, [privateRequire], 1, _thisArg);
@@ -586,7 +587,7 @@ void function init() {
       var notCache = info.notCache;
       var queue = scriptQueue[path], isUn = !queue, isInclude = isUn || !queue.length;
       if (isFunc(complete)) {
-        var timeout = globalConfig.timeout || 12e3;
+        var timeout = globalConfig.timeout || 20e3;
         var sid = setTimeout(function () {
           sid = null;
           var _complete = complete;
