@@ -22,6 +22,7 @@ require.config({
 /// 引入 id 为 https://server.domain/examples/dep5AliasFinal.js 的  dep2 的 依赖模块
 /// 引入 id 为 https://server.domain/examples/dep3AliasFinal.js 的模块 dep2
 /// 引入 id 为 https://server.domain/examples/dep5AliasFinal.js 的模块 dep3
+/// 生成 id 为 https://server.domain/examples/currentDir/path.js 的模块
 define(['dep', "dep1", "dep2", "@dep4Alias"], function (dep, dep1, dep2, dep3, _require) {
   //require 全局的 require  目录路径为 https://server.domain/examples/
   //_require 私有的 require 目录路径为 https://server.domain/examples/current
@@ -38,7 +39,7 @@ define(['dep', "dep1", "dep2", "@dep4Alias"], function (dep, dep1, dep2, dep3, _
   this.module.exports.key4 = 4;
   //等同于
   this.module.exports = {key3: 3, key4: 4};
-   //等同于
+  //等同于
   this.exports = {key3: 3, key4: 4};
   //
   //如果没有设置  module.exports 或 this.module.exports 将使用 返回值作为导出的模块
@@ -61,6 +62,7 @@ module.syncs = {
 /// 引入 id 为 https://server.domain/examples/dep5AliasFinal.js 的  dep2 的 依赖模块
 /// 引入 id 为 https://server.domain/examples/dep3AliasFinal.js 的模块 dep2
 /// 引入 id 为 https://server.domain/examples/dep5AliasFinal.js 的模块 dep3
+/// 生成 id 为 https://server.domain/examples/currentDir/path.js 的模块
 require(['dep', "dep1", "dep2", "@dep4Alias",/*depMap 可选*/{dep1: {deps: ['des']}, dep2: {params: {param: '重置参数'}, path: '@dep2Alias'}}], true);
 module.syncs = function (require, dep, dep1, dep2, dep3) {
 };
@@ -75,7 +77,7 @@ module.syncs = {
 
 /// 引入 id 为 https://server.domain/examples/currentDir/dep.js 的模块
 /// 生成 id 为 https://server.domain/examples/path.js 的模块
-define("path", ["dep"], function (dep, require) {
+define("../path", ["dep"], function (dep, require) {
 
 });
 
