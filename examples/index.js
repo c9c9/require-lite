@@ -1,6 +1,6 @@
 ///当前路径为 https://server.domain/examples/currentDir/path.js
 require.config({
-  timeout: 12e3,
+  timeout: 20e3,
   baseUrl: 'https://server.domain/examples/',
   alias: {
     dep5Alias: "dep5AliasFinal",
