@@ -4,7 +4,8 @@ void function init() {
   if (req && req.ACDM) {
     return;
   }
-  var OBJ = Object, doc = document, script = doc.getElementById('ACDM-DST') || doc.currentScript, UNDEFINED = undefined;
+  var OBJ = Object, doc = document, script = doc.getElementById('ACDM-DST') || doc.currentScript,
+    UNDEFINED = undefined,NULL=null,FALSE=false,TRUE=true,CONSOLE=console;
   var hasOwn = OBJ.prototype.hasOwnProperty, assign = OBJ.assign, isArray = Array.isArray;//, arrayConcat = Array.prototype.concat
   var base = doc.createElement('base');
   var mainPath, currentPath, pageBasePath = getPageBasePath();//promisePath,scriptPath
@@ -211,7 +212,7 @@ void function init() {
 
   function setExports(module, exports, id) {
     if (!module[isLock]) {
-      module[isLock] = true;
+      module[isLock] = TRUE;
       module[exportName] = exports;
       module.exportGenerated = NaN;
       cacheModule(id, exports);
@@ -219,7 +220,7 @@ void function init() {
   }
 
   function initExports(module) {
-    module[isLock] = false;
+    module[isLock] = FALSE;
     module[exportName] = module[exportGenerated] = {}
   }
 
@@ -262,7 +263,7 @@ void function init() {
     },
     clear: function () {
       clear();
-      this[isLock] = false;
+      this[isLock] = FALSE;
     },
     get: function (id) {
       return getExportsCacheValue(id === UNDEFINED ? this[moduleNameId] : id)
@@ -332,7 +333,7 @@ void function init() {
     if (isObject(o)) {
       for (var k in o) {
         if (hasOwn.call(o, k)) {
-          return true
+          return TRUE
         }
       }
     }
@@ -342,7 +343,7 @@ void function init() {
   function syncsModule(notCache, currentPath, callback) {
     var syncs = publicModule[syncsName];
     syncs = isArray(syncs) ? syncs : [syncs];
-    publicModule[syncsOptionName] = null;
+    publicModule[syncsOptionName] = UNDEFINED;
     publicModule[syncsName] = [];
     var currentDir = toDir(currentPath);
     var mod, err, privateRequires = [], privateModules = [], length = syncs.length;
@@ -388,16 +389,16 @@ void function init() {
       desMap = defineFn;
       defineFn = des;
       des = name;
-      name = null;
+      name = UNDEFINED;
     } else if (isFunc(name)) {
       desMap = defineFn;
       defineFn = name;
-      des = name = null;
+      des = name = UNDEFINED;
     }
     if (isFunc(des)) {
       desMap = defineFn;
       defineFn = des;
-      des = null;
+      des = UNDEFINED;
     }
     module.syncs = {
       methodName: 'define',
@@ -467,7 +468,7 @@ void function init() {
       _define = function () {
         var module = arguments[arguments.length - 2];
         var _exports = exports;
-        exports = null;
+        exports = UNDEFINED;
         if (module) {
           module.exports = _exports;
         }
@@ -500,7 +501,7 @@ void function init() {
         define = define[1];
         var e1 = isEmptyModule(privateModule), e2 = isEmptyModule(publicModule);
         if (define !== UNDEFINED && e1 && e2) {
-          privateModule[isLock] = false;
+          privateModule[isLock] = FALSE;
           privateModule.exports = define;
         }
       }
@@ -510,7 +511,7 @@ void function init() {
       if (notCache) {
         removeModule(id, 1)
       }
-      notCache = currentPath = privateModule = currentDir = callback = null;
+      notCache = currentPath = privateModule = currentDir = callback = UNDEFINED;
       ret = {state: state, module: module, name: id, path: path};
       // if (!state && errArr) {
       //   for (var i = 0; i < errArr.length; i++) {
@@ -528,12 +529,12 @@ void function init() {
       requireModule(currentDir, isArray(_require) ? _require : [_require], _depMap, function (args/*, err*/) {
         args[isDefineMethod ? 'push' : 'unshift'](_thisArg.require);
         var ret = tryCallRet(_define, args, 1, _thisArg);
-        _define = isDefineMethod = _thisArg = null;
+        _define = isDefineMethod = _thisArg = UNDEFINED;
         callback(ret, ret[0]/*, err*/);
       })
     } else {
       var ret = tryCallRet(_define, [privateRequire], 1, _thisArg);
-      _define = _thisArg = privateRequire = null;
+      _define = _thisArg = UNDEFINED;
       callback(ret, ret[0]);
     }
   }
@@ -587,21 +588,21 @@ void function init() {
       if (isFunc(complete)) {
         var timeout = globalConfig.timeout || 20e3;
         var sid = setTimeout(function () {
-          sid = null;
+          sid = UNDEFINED;
           var _complete = complete;
-          complete = null;
+          complete = UNDEFINED;
           if (isFunc(_complete)) {
-            _complete(null, [{type: 'Timeout', error: '请求超时'}]);
+            _complete(UNDEFINED, [{type: 'Timeout', error: '请求超时'}]);
           }
         }, timeout);
         if (isUn) {
           queue = scriptQueue[path] = []
         }
         queue.push(function (module, error) {
-          if (sid !== null) {
+          if (sid !== UNDEFINED) {
             clearTimeout(sid);
             var _complete = complete;
-            complete = null;
+            complete = UNDEFINED;
             if (isFunc(_complete)) {
               _complete(module, error);
             }
@@ -611,7 +612,7 @@ void function init() {
       if (isInclude) {
         includeScript(path, function (isLoad, currentPath) {
           var callback = function (module, error) {
-            callback = null;
+            callback = UNDEFINED;
             queue = scriptQueue[path];
             if (queue) {
               for (var i = 0, _callback; i < queue.length; i++) {
@@ -623,7 +624,7 @@ void function init() {
           if (isLoad) {
             syncsModule(notCache, currentPath, callback)
           } else {
-            callback(null, [{type: 'LoadFailed', error: '请求超时'}])
+            callback(UNDEFINED, [{type: 'LoadFailed', error: '请求超时'}])
           }
         })
       }
@@ -652,12 +653,12 @@ void function init() {
   function includeScript(src, callback) {
     var script = document.createElement("script");
     script.src = src;
-    script.async = true;
-    script.defer = true;
+    script.async = TRUE;
+    script.defer = TRUE;
     if (callback) {
       setScriptOnValue(script, function (e) {
         var _callback = callback;
-        setScriptOnValue(this, callback = null);
+        setScriptOnValue(this, callback = UNDEFINED);
         _callback(e.type === 'load', this.src);
       });
     }
@@ -683,7 +684,7 @@ void function init() {
       depMap = complete;
       complete = _depMap;
     }
-    depMap = isObject(_depMap) ? depMap : null;
+    depMap = isObject(_depMap) ? depMap : UNDEFINED;
     if (isFunc(then) || isFunc(error) || isFunc(complete)) {
       paths = isArray(paths) ? paths : [paths]
     }
@@ -709,12 +710,12 @@ void function init() {
       /* var syncsOption = module[syncsOptionName], l;
        if (syncsOption && (l = syncsOption.length)) {
          value = assign({define: value}, syncsOption[l - 1]);
-        module[syncsOptionName] = null;
+        module[syncsOptionName] = UNDEFINED;
        }*/
       var syncsOption = module[syncsOptionName];
       if (syncsOption) {
         value = assign({define: value}, syncsOption);
-        module[syncsOptionName] = null;
+        module[syncsOptionName] = UNDEFINED;
       }
     }
     module[syncsName].push(value)
@@ -724,7 +725,7 @@ void function init() {
     var depMap = deps.pop();
     if (!isObject(depMap)) {
       deps.push(depMap);
-      depMap = null
+      depMap = UNDEFINED
     }
     if (depMap || deps.length) {
       /*var syncsOption = module[syncsOptionName];
@@ -743,8 +744,8 @@ void function init() {
   }
 
   window.require = function (paths, then, error, depMap) {
-    if (isArray(paths) && (then === true || then === false) && error == null && depMap == null) {
-      if (then === true) {
+    if (isArray(paths) && (then === TRUE || then === FALSE) && error == NULL && depMap == NULL) {
+      if (then === TRUE) {
         setSyncsOption(publicModule, paths);
         return
       } else {
@@ -773,11 +774,11 @@ void function init() {
         if (nonApply) {
           func(args)
         } else {
-          func.apply(null, args)
+          func.apply(NULL, args)
         }
 
       } catch (e) {
-        console.error(e)
+        CONSOLE.error(e)
       }
     }
   }
@@ -786,10 +787,10 @@ void function init() {
     var nonApply = !isApply;
     if (isFunc(func)) {
       try {
-        return {state: true, ret: nonApply ? func(args) : func.apply(thisArg, args)};
+        return {state: TRUE, ret: nonApply ? func(args) : func.apply(thisArg, args)};
       } catch (e) {
-        console.error(e);
-        return {state: false, error: e.message}
+        CONSOLE.error(e);
+        return {state: FALSE, error: e.message}
       }
     }
   }
@@ -801,11 +802,11 @@ void function init() {
           if (nonApply) {
             func(args)
           } else {
-            func.apply(null, args)
+            func.apply(NULL, args)
           }
-          return true;
+          return TRUE;
         } catch (e) {
-          console.error(e)
+          CONSOLE.error(e)
         }
       }
     }*/
@@ -834,7 +835,7 @@ void function init() {
   }
 
   function requireModuleOne(currentDir, path, depMap, complete) {
-    var notCache = isNotCachePath(path), canCache = !notCache, module = canCache && getExportsCacheCall(toNoHashUrl(path), complete = complete || null);
+    var notCache = isNotCachePath(path), canCache = !notCache, module = canCache && getExportsCacheCall(toNoHashUrl(path), complete = complete || FALSE);
     if (module) {
       return module.value;
     }
@@ -869,7 +870,7 @@ void function init() {
     deps = info.deps;
     var requireMethod = function () {
       var _info = info, _complete = complete;
-      info = complete = null;
+      info = complete = UNDEFINED;
       execRequireModule(_info, _complete)
     };
     if (!deps) {
@@ -941,7 +942,7 @@ void function init() {
 
   };
 
-  publicRequire.ACDM = true;
+  publicRequire.ACDM = TRUE;
   cacheModule('require', publicRequire);
   cacheModule('module', publicModule);
   if (mainPath) {
