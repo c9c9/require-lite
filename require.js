@@ -5,7 +5,7 @@ void function init() {
     return;
   }
   var OBJ = Object, doc = document, script = doc.getElementById('ACDM-DST') || doc.currentScript,
-    UNDEFINED = undefined,NULL=null,FALSE=false,TRUE=true,CONSOLE=console;
+    UNDEFINED = undefined, NULL = null, FALSE = false, TRUE = true, CONSOLE = console;
   var hasOwn = OBJ.prototype.hasOwnProperty, assign = OBJ.assign, isArray = Array.isArray;//, arrayConcat = Array.prototype.concat
   var base = doc.createElement('base');
   var mainPath, currentPath, pageBasePath = getPageBasePath();//promisePath,scriptPath
@@ -384,7 +384,7 @@ void function init() {
    * @param {defineFn|Object|*} [defineFn]
    * @param {Object|*} [desMap]
    */
-  window.define = function define(name, des, defineFn, desMap) {
+  var define = window.define = function (name, des, defineFn, desMap) {
     if (isArray(name)) {
       desMap = defineFn;
       defineFn = des;
@@ -408,6 +408,7 @@ void function init() {
       define: defineFn
     };
   };
+  define.amd = TRUE;
 
   /*
     /!**
