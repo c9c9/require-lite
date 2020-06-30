@@ -3,7 +3,7 @@ require.config({
   timeout: 20e3,
   baseUrl: 'https://server.domain/examples/',
   alias: {
-    //like wepack
+    //like webpack
   },
   paths:{
   //like requirejs
