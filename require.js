@@ -243,14 +243,16 @@ void function () {
     if (!deps || !deps.length) {
       privateModule.define(name, factory)
     } else {
+      var id = privateModule.getId(name);
+      addRequireLoadQueue(id);
       privateRequire(currentDir, currentId, privateModule, deps, function () {
-        privateModule.define(name, factory, arguments);
+        privateModule.defineById(id, factory, arguments);
         complete();
-        privateModule = factory = complete = NULL;
+        privateModule = factory = id = complete = NULL;
       }, function (error, errorId) {
-        privateModule.error(name, error, errorId)
+        privateModule.errorById(id, error, errorId)
         complete();
-        privateModule = factory = complete = NULL;
+        privateModule = factory = id = complete = NULL;
       }, options)
     }
   }
@@ -347,7 +349,9 @@ void function () {
         factory = path;
         path = NULL;
       }
-      var id = getId(path);
+      defineById(getId(path), factory, args);
+    }
+    var defineById = function (id, factory, args) {
       try {
         save(id, isFunction(factory) ? args ? factory.apply(NULL, args) : factory() : factory);
       } catch (e) {
@@ -360,6 +364,7 @@ void function () {
     }
     var privateModule = {
       save: save,
+      defineById: defineById,
       toModuleByPath: function (path) {
         return path && isString(path) ? createPrivateModule(currentDir, getId(path)) : privateModule;
       },
@@ -502,8 +507,10 @@ void function () {
     var queue = requireLoadQueue[id];
     if (queue && id) {
       tryDelete(requireLoadQueue, id);
-      for (var i = 0, l = queue.length; i < l; i++) {
-        queue[i](module, error, errorId)
+      for (var i = 0, l = queue.length, func; i < l; i++) {
+        if ((func = queue[i])) {
+          func(module, error, errorId)
+        }
       }
     }
   }
@@ -590,12 +597,19 @@ void function () {
     }
   }
 
-  function addToRequireLoadQueue(id, load, index, currentDir, method, pcm, option) {
+  function addRequireLoadQueue(id) {
     var queue = requireLoadQueue[id];
-    var isFirst = !queue;
-    if (isFirst) {
+    if (!queue) {
       queue = requireLoadQueue[id] = [];
+      queue.isFirst = TRUE;
+    } else if (queue.isFirst) {
+      queue.isFirst = FALSE;
     }
+    return queue
+  }
+
+  function addToRequireLoadQueue(id, load, index, currentDir, method, pcm, option) {
+    var queue = addRequireLoadQueue(id), isFirst = queue.isFirst;
     var sid, callback = function (module, error, errorId) {
       if (sid) {
         clearTimeout(sid);
