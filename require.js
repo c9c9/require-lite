@@ -244,7 +244,9 @@ void function () {
       privateModule.define(name, factory)
     } else {
       var id = privateModule.getId(name);
-      addRequireLoadQueue(id);
+      if (!modules[id]) {
+        addRequireLoadQueue(id);
+      }
       privateRequire(currentDir, currentId, privateModule, deps, function () {
         privateModule.defineById(id, factory, arguments);
         complete();
