@@ -241,7 +241,8 @@ void function () {
 
   function privateDefine(currentDir, currentId, privateModule, name, deps, factory, options, complete) {
     if (!deps || !deps.length) {
-      privateModule.define(name, factory)
+      privateModule.define(name, factory);
+      complete();
     } else {
       var id = privateModule.getId(name);
       if (!modules[id]) {
@@ -470,6 +471,7 @@ void function () {
     var requires = [], isSync = FALSE;
     pathsDescOption = pathsDescOption || {}
     var pc_paths = publicConfig.paths;
+    paths = isArray(paths) ? paths : [];
     for (var i = 0, l = paths.length, path; i < l; i++) {
       path = paths[i];
       if (sync_str_arr.indexOf(path) > -1) {
@@ -483,7 +485,7 @@ void function () {
     if (isSync && !currentDir) {
       pushToLoadQueue(baseDir, {isRequire: TRUE, params: [requires, then, error]});
     } else {
-      requireMain(baseDir, requires, then, error, currentId, privateModule || createPrivateModule(baseDir, currentId))
+      requireMain(baseDir, requires, then, error, currentId, privateModule || l && createPrivateModule(baseDir, currentId))
     }
 
   }
@@ -532,7 +534,9 @@ void function () {
   function requireMain(currentDir, requires, then, error, currentId, privateModule, complete) {
     var length = requires.length;
     if (length === 0) {
-      then();
+      if (isFunction(then)) {
+        then();
+      }
     } else {
       var count = 0, isComplete, _modules = [];
       var load = function (index, module, err, id) {
@@ -569,8 +573,16 @@ void function () {
           continue;
         }
         path = item.path;
-        if (!isString(path)) {
-          load(i, UNDEFINED)
+        if (!path || !isString(path)) {
+          var _module;
+          if (isFunction(path)) {
+            try {
+              _module = path();
+            } catch (e) {
+              CONSOLE.error(e)
+            }
+          }
+          load(i, _module)
           continue;
         }
         pluginName = path.match(/^([0-9a-z_]+)!([\s\S]*)/i);
