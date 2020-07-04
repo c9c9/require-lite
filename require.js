@@ -1,48 +1,42 @@
-void function init() {
-  "use strict";
+void function () {
   var win = window, req = win.require;
-  if (req && req.ACDM) {
-    return;
+
+  function isFunction(o) {
+    return typeof o === "function"
   }
-  var OBJ = Object, doc = document, script = doc.getElementById('ACDM-DST') || doc.currentScript,
+
+  if (isFunction(req) && req.ACMD) {
+    return
+  }
+  var OBJ = Object, doc = document, script = doc.getElementById('ACMD-DST') || doc.currentScript,
     UNDEFINED = undefined, NULL = null, FALSE = false, TRUE = true, CONSOLE = console;
-  var hasOwn = OBJ.prototype.hasOwnProperty, assign = OBJ.assign, isArray = Array.isArray;//, arrayConcat = Array.prototype.concat
-  var base = doc.createElement('base');
-  var mainPath, currentPath, pageBasePath = getPageBasePath();//promisePath,scriptPath
+  var hasOwn = OBJ.prototype.hasOwnProperty, isArray = Array.isArray;//, assign = OBJ.assign, arrayConcat = Array.prototype.concat
+  var head = doc.head || doc.getElementsByTagName('head')[0]
+    , base = doc.createElement('base');
+  var mainPath, currentPath, pageBasePath = getPageBasePath();
   if (!script) {
     doc.querySelectorAll('script').forEach(function (_require) {
-      if (_require.src.search(/[/\\]require(\.min)*.js/i) > -1) {
+      if (_require.src.search(/[/\\]require(\.min)*\.js/i) > -1) {
         script = _require;
       }
     })
   }
   if (script) {
-    var pageBaseDir = toDir(pageBasePath);
-    var dataset = script.dataset;
-    /*scriptPath = script.src;
-    promisePath = dataset.promise;
-    if (promisePath) {
-      promisePath = toAbsJsPath(promisePath, pageBaseDir)
-    } else {
-      promisePath = toAbsJsPath('./promise.js', toDir(scriptPath))
-    }*/
-    mainPath = dataset.main;
+    mainPath = script.getAttribute('data-main');
     if (mainPath) {
-      mainPath = toAbsJsPath(mainPath, pageBaseDir)
+      mainPath = toAbsJsPath(mainPath, toDir(pageBasePath))
     }
   }
   currentPath = mainPath || pageBasePath;
   var currentBaseUrl = toDir(currentPath);
-  /*if (!window.Promise && promisePath) {
-    includeScript(promisePath, function (isLoad) {
-      if (isLoad) {
-        init();
-      }
-    });
-    return;
-  }*/
 
-  var head = doc.head || doc.getElementsByTagName('head')[0];
+  function isString(o) {
+    return typeof o === "string"
+  }
+
+  function isObject(o) {
+    return !!o && typeof o === "object"
+  }
 
   function getPageBasePath() {
     return toOriginUrl(doc.baseURI);
@@ -63,8 +57,9 @@ void function init() {
 
   function toDir(path) {
     path = toOriginUrl(path);
-    path = path + (/[/\\]$/.test(path) ? '' : '/') + (/\.[^/\\]+$/.test(path) ? '../' : './');
-    return toAbsUrl(path);
+    path = path + (!path || /[/\\]$/.test(path) ? '' : '/') + (/\.[^/\\]+$/.test(path) ? '../' : './');
+    path = toAbsUrl(path)
+    return path;
   }
 
   function toLowerCaseUrl(url) {
@@ -83,12 +78,11 @@ void function init() {
   */
 
   function toAbsPath(path, currentDir) {
-    path = toLowerCaseUrl(path);
     return toAbsUrl(isAbsUrl(path) ? path : currentDir + path).trim().replace(/([^:])[/\\]{2,}/, '$1/');
   }
 
   function toAbsUrl(url) {
-    base.href = isAbsUrl(url) ? url : getPageBasePath() + url;
+    base.href = isAbsUrl(url) ? url : url;
     return base.href;
   }
 
@@ -97,562 +91,12 @@ void function init() {
   }
 
 
-  var mrId =
-      Math.floor(Math.random() * 1e5).toString(36),
-    syncsName = 'sync_' + mrId,
-    syncsOptionName = 'syncOption_' + mrId,
-    exportName = 'export_' + mrId, exportGenerated = 'exportG_' + mrId,
-    //modulePathId = 'modulePath_' + mrId,
-    moduleNameId = 'moduleName_' + mrId,
-    currentDirName = 'currentDir_' + mrId,
-    baseUrlDirName = 'baseDir_' + mrId,
-    baseUrlUrlCopy = 'baseUrlCopy_' + mrId,
-    isLock = 'isLock_' + mrId;
-
-  var globalConfig = {
-    timeout: 20e3,
-    baseUrl: currentBaseUrl,
-    alias: {}
-  }, exportsCache = {};
-
-  function getConfig() {
-    return globalConfig
-  }
-
-  function getBaseUrl() {
-    var baseUrl = globalConfig.baseUrl;
-    if (globalConfig[baseUrlUrlCopy] !== baseUrl) {
-      globalConfig[baseUrlUrlCopy] = baseUrl;
-      return globalConfig[baseUrlDirName] = toDir(baseUrl)
-    }
-    return globalConfig[baseUrlDirName] || ''
-  }
-
-  function setConfig(config) {
-    assign(globalConfig, config)
-  }
-
-
-  function getModuleInfo(path, currentDir, callback) {
-    var alias = globalConfig.alias[path = path.replace(/^@/, '')], deps, params;
-    if (alias) {
-      var baseUrl = getBaseUrl();
-      if (isObject(alias)) {
-        deps = alias.deps;
-        path = alias.path;
-        params = alias.params;
-      } else {
-        path = alias;
-      }
-      if (!deps && path[0] === '@') {
-        return getModuleInfo(path, baseUrl, callback)
-      }
-    }
-    var notCache = isNotCachePath(path), canCache = !notCache;
-    return {
-      params: params,
-      notCache: notCache,
-      canCache: canCache,
-      deps: deps,
-      module: canCache && callback !== UNDEFINED && getExportsCacheCall(toNoHashUrl(path), callback),
-      originalPath: path,
-      path: toAbsJsPath(path, currentDir)
-    }
-  }
-
-  function getModuleAbsPath(path, currentDir) {
-    var alias = globalConfig.alias[path = path.replace(/^@/, '')];
-    if (alias) {
-      var baseUrl = getBaseUrl(), deps;
-      if (isObject(alias)) {
-        deps = alias.deps;
-        path = alias.path;
-      } else {
-        path = alias;
-      }
-      if (!deps && path[0] === '@') {
-        return getModuleAbsPath(path, baseUrl)
-      }
-    }
-    return toAbsJsPath(path, currentDir)
-  }
-
-  function removeModule(path, isId, dir) {
-    tryDelete(exportsCache, isId ? path : getModuleAbsPath(path, dir))
-  }
-
-  function clear() {
-    exportsCache = {};
-  }
-
-
-  function cacheModule(id, value, isUpdate) {
-    if (id && (isUpdate || !exportsCache[id])) {
-      exportsCache[id] = {value: value};
-    }
-  }
-
-
-  function cacheExports(module, id) {
-    var exports = module[exportName], isPublic = module === publicModule;
-    if (exports !== module[exportGenerated] || nonEmptyObj(exports)) {
-      cacheModule(id, exports);
-    } else if (isPublic) {
-      cacheModule(id, exports);
-    }
-    if (isPublic) {
-      initExports(publicModule);
-    }
-  }
-
-  function isEmptyModule(module) {
-    var exports = module[exportName];
-    return exports === module[exportGenerated] && !nonEmptyObj(exports)
-  }
-
-  function setExports(module, exports, id) {
-    if (!module[isLock]) {
-      module[isLock] = TRUE;
-      module[exportName] = exports;
-      module.exportGenerated = NaN;
-      cacheModule(id, exports);
-    }
-  }
-
-  function initExports(module) {
-    module[isLock] = FALSE;
-    module[exportName] = module[exportGenerated] = {}
-  }
-
-  function hasModule(id) {
-    return exportsCache.hasOwnProperty(id) && !!exportsCache[id];
-  }
-
-  function PrivateModule(path, id, dir) {
-    //this[modulePathId] = path;
-    this[moduleNameId] = id || path;
-    this[currentDirName] = dir;
-    initExports(this);
-  }
-
-  PrivateModule.prototype = {
-    getConfig: getConfig,
-    setConfig: setConfig,
-    getCurrentDir: function () {
-      return this[currentDirName]
-    },
-    get id() {
-      return this[moduleNameId];
-    },
-    has: hasModule,
-    exist: function () {
-      return hasModule(this[moduleNameId]);
-    },
-    remove: function (path, isId) {
-      var isSelf = path === UNDEFINED;
-      removeModule(isSelf ? this[moduleNameId] : path, isSelf || isId, this[currentDirName]);
-      if (this[isLock]) {
-        this[isLock] = !isSelf;
-      }
-    },
-    removeById: function (id) {
-      removeModule(id, id);
-      if (this[isLock]) {
-        this[isLock] = this[moduleNameId] !== id;
-      }
-    },
-    clear: function () {
-      clear();
-      this[isLock] = FALSE;
-    },
-    get: function (id) {
-      return getExportsCacheValue(id === UNDEFINED ? this[moduleNameId] : id)
-    },
-    get exports() {
-      return this[exportName];
-    },
-    set exports(value) {
-      setExports(this, value, this[moduleNameId])
-    }
-  };
-
-  function PublicModule() {
-    initExports(this);
-    this[syncsName] = []
-  }
-
-
-  PublicModule.prototype = {
-    getConfig: getConfig,
-    setConfig: setConfig,
-    update: function (id, value) {
-      cacheModule(id, value, 1)
-    },
-    has: hasModule,
-    remove: function (path, isId) {
-      removeModule(path, isId, getBaseUrl())
-    },
-    removeById: function (id) {
-      removeModule(id, id)
-    },
-    get: getExportsCacheValue,
-    getCurrentDir: getBaseUrl,
-    clear: clear,
-    /**
-     * @typedef {function(require:window.require,...*):*} syncsFn
-     * @typedef {{name?:string,require?:*,define?:syncsFn,depMap?:{params?:Object,deps?:Array}|Array}} syncsObject
-     * @typedef {Array<syncsFn>|Array<syncsObject>} syncsArray
-     * @typedef {syncsFn|syncsObject|syncsArray|*} syncsType
-     * @return {syncsFn}
-     */
-    get syncs() {
-      return this[syncsName]
-    },
-    /**
-     *
-     * @param {syncsType} syncsVale
-     */
-    set syncs(syncsVale) {
-      setSyncs(this, syncsVale);
-    },
-    get exports() {
-      return this[exportName];
-    },
-    /**
-     * @alias exports
-     * @type Object
-     */
-    set exports(value) {
-      setExports(this, value);
-    },
-    plugins: {}
-  };
-
-
-  function nonEmptyObj(o) {
-    if (isObject(o)) {
-      for (var k in o) {
-        if (hasOwn.call(o, k)) {
-          return TRUE
-        }
-      }
-    }
-  }
-
-
-  function syncsModule(notCache, currentPath, callback) {
-    var syncs = publicModule[syncsName];
-    syncs = isArray(syncs) ? syncs : [syncs];
-    publicModule[syncsOptionName] = UNDEFINED;
-    publicModule[syncsName] = [];
-    var currentDir = toDir(currentPath);
-    var mod, err, privateRequires = [], privateModules = [], length = syncs.length;
-    var eachCallback = function (index, ret) {
-      if (index === 0) {
-        mod = ret.module;
-        if (ret.state) {
-          err = ret;
-        }
-      }
-      if (--length <= 0) {
-        callback(mod, err)
-      }
-    };
-    for (var i = 0, l = length; i < l; i++) {
-      execSyncs(notCache, syncs[i], currentDir, currentPath, privateRequires, privateModules, i, eachCallback)
-    }
-  }
-
-  /*  function noop() {
-
-    }*/
-
-  function createPrivateRequire(dir) {
-    return function require(paths, deps, then, error) {
-      return requireMain(dir, paths, deps, then, error)
-    }
-  }
-
-  function isObject(o) {
-    return o && typeof o === "object"
-  }
-
-  /**
-   * @typedef {function(...[],require:window.require):*} defineFn
-   * @param {string|Array|defineFn|*} name
-   * @param {defineFn|string|Array|Object|*} [des]
-   * @param {defineFn|Object|*} [defineFn]
-   * @param {Object|*} [desMap]
-   */
-  var define = window.define = function (name, des, defineFn, desMap) {
-    if (isArray(name)) {
-      desMap = defineFn;
-      defineFn = des;
-      des = name;
-      name = UNDEFINED;
-    } else if (isFunc(name)) {
-      desMap = defineFn;
-      defineFn = name;
-      des = name = UNDEFINED;
-    }
-    if (isFunc(des)) {
-      desMap = defineFn;
-      defineFn = des;
-      des = UNDEFINED;
-    }
-    module.syncs = {
-      methodName: 'define',
-      name: name,
-      desMap: desMap,
-      require: des,
-      define: defineFn
-    };
-  };
-  define.amd = TRUE;
-
-  /*
-    /!**
-     *
-     * @param args
-     * @return {Window}
-     *!/
-    function getMR(args) {
-      var length = args.length;
-      return {
-        module: args[length - 2],
-        require: args[length - 1]
-      }
-    }
-
-    /!**
-     *
-     * @param args
-     * @return window.module
-     *!/
-    function getM(args) {
-      return args[length - 2]
-    }
-
-    /!**
-     * @param args
-     * @return window.require
-     *!/
-    function getR(args) {
-      return args[length - 1]
-    }*/
-
-  function execSyncs(notCache, syncs, currentDir, currentPath, privateRequires, privateModules, index, execCallback) {
-    var _require, _define, _depMap, name, privateModule, privateRequire, isDefineMethod, isSame;
-    if (isObject(syncs)) {
-      isDefineMethod = syncs.methodName === 'define';
-      _require = syncs.require;
-      _depMap = syncs.depMap;
-      _define = syncs.define;
-      name = syncs.name;
-    } else {
-      _define = syncs;
-    }
-    for (var j = 0, len = privateModules.length; j < len; j++) {
-      privateModule = privateModules[j];
-      privateRequire = privateRequires[j];
-      if ((isSame = privateModule && privateModule[moduleNameId] === name)) {
-        break;
-      }
-    }
-
-    if (!isSame) {
-      privateModule = new PrivateModule(currentPath = toAbsJsPath(name || currentPath, currentDir), currentPath, currentDir = toDir(currentPath));
-      privateRequire = createPrivateRequire(currentDir)
-    }
-    if (!isFunc(_define)) {
-      var exports = _define;
-      _define = function () {
-        var module = arguments[arguments.length - 2];
-        var _exports = exports;
-        exports = UNDEFINED;
-        if (module) {
-          module.exports = _exports;
-        }
-      }
-    } /*else {
-      /!**
-       *
-       * @name getMR
-       * @type {function(*): {Window}}
-       *!/
-      _define.getMR = getMR;
-      /!**
-       * @name getM
-       * @type {function(*): window.module}
-       *!/
-      _define.getM = getM;
-      /!**
-       *
-       * @name getR
-       * @type {function(*): window.require}
-       *!/
-      _define.getR = getR;
-
-
-    }*/
-    var callback = function (define, state/*, errArr*/) {
-      var path = currentPath, id = privateModule[moduleNameId], ret, module;
-
-      if (state) {
-        define = define[1];
-        var e1 = isEmptyModule(privateModule), e2 = isEmptyModule(publicModule);
-        if (define !== UNDEFINED && e1 && e2) {
-          privateModule[isLock] = FALSE;
-          privateModule.exports = define;
-        }
-      }
-      cacheExports(privateModule, id);
-      cacheExports(publicModule, id);
-      module = getExportsCacheValue(id);
-      if (notCache) {
-        removeModule(id, 1)
-      }
-      notCache = currentPath = privateModule = currentDir = callback = UNDEFINED;
-      ret = {state: state, module: module, name: id, path: path};
-      // if (!state && errArr) {
-      //   for (var i = 0; i < errArr.length; i++) {
-      //     if (errArr[i].name !== ret.name) {
-      //       errArr.push(ret);
-      //     }
-      //   }
-      // }
-      //execCallback(index, ret, errArr)
-      execCallback(index, ret)
-    };
-
-    var _thisArg = new ModuleArg(privateModule, privateRequire);
-    if (_require && _require.length) {
-      requireModule(currentDir, isArray(_require) ? _require : [_require], _depMap, function (args/*, err*/) {
-        args[isDefineMethod ? 'push' : 'unshift'](_thisArg.require);
-        var ret = tryCallRet(_define, args, 1, _thisArg);
-        _define = isDefineMethod = _thisArg = UNDEFINED;
-        callback(ret, ret[0]/*, err*/);
-      })
-    } else {
-      var ret = tryCallRet(_define, [privateRequire], 1, _thisArg);
-      _define = _thisArg = UNDEFINED;
-      callback(ret, ret[0]);
-    }
-  }
-
-  function ModuleArg(module, require) {
-    this.module = module;
-    this.require = require;
-  }
-
-  ModuleArg.prototype = {
-    get exports() {
-      var module = this.module;
-      if (module) {
-        return module.exports
-      }
-    },
-    set exports(value) {
-      var module = this.module;
-      if (module) {
-        module.exports = value
-      }
-    }
-  };
-
-  function getExportsCache(id) {
-    return exportsCache[id]
-  }
-
-  function getExportsCacheValue(id) {
-    /**
-     * @type{{value}}
-     */
-    var exports = exportsCache[id];
-    return exports && exports.value;
-  }
-
-
-  var publicModule = window.module = new PublicModule();
-  var scriptQueue = publicModule.scriptQueue = {};
-  window.modulePlugins = publicModule.plugins = {
-    /*    ajax: function () {
-
-        },
-        css: function () {
-
-        },*/
-    js: function (info, complete) {
-      var path = info.path;
-      var notCache = info.notCache;
-      var queue = scriptQueue[path], isUn = !queue, isInclude = isUn || !queue.length;
-      if (isFunc(complete)) {
-        var timeout = globalConfig.timeout || 20e3;
-        var sid = setTimeout(function () {
-          sid = UNDEFINED;
-          var _complete = complete;
-          complete = UNDEFINED;
-          if (isFunc(_complete)) {
-            _complete(UNDEFINED, [{type: 'Timeout', error: '请求超时'}]);
-          }
-        }, timeout);
-        if (isUn) {
-          queue = scriptQueue[path] = []
-        }
-        queue.push(function (module, error) {
-          if (sid !== UNDEFINED) {
-            clearTimeout(sid);
-            var _complete = complete;
-            complete = UNDEFINED;
-            if (isFunc(_complete)) {
-              _complete(module, error);
-            }
-          }
-        });
-      }
-      if (isInclude) {
-        includeScript(path, function (isLoad, currentPath) {
-          var callback = function (module, error) {
-            callback = UNDEFINED;
-            queue = scriptQueue[path];
-            if (queue) {
-              for (var i = 0, _callback; i < queue.length; i++) {
-                _callback = queue[i];
-                _callback(module, error)
-              }
-            }
-          };
-          if (isLoad) {
-            syncsModule(notCache, currentPath, callback)
-          } else {
-            callback(UNDEFINED, [{type: 'LoadFailed', error: '请求超时'}])
-          }
-        })
-      }
-    },
-    /*    text: function () {
-
-        },
-        get: function () {
-
-        },
-        post: function () {
-
-        },
-        json: function () {
-
-        },
-        jsonp: function () {
-
-        }*/
-  };
-
-  function setScriptOnValue(script, value) {
-    script.onload = script.onerror = script.onabort = value;
+  function setScriptOnValue(script, on) {
+    script.onload = script.onerror = script.onabort = on;
   }
 
   function includeScript(src, callback) {
-    var script = document.createElement("script");
+    var script = doc.createElement("script");
     script.src = src;
     script.async = TRUE;
     script.defer = TRUE;
@@ -667,286 +111,615 @@ void function init() {
     head.removeChild(script)
   }
 
-
-  function requireMain(currentDir, paths, then, error, complete, depMap) {
-    var _depMap;
-    if (isObject(then)) {
-      _depMap = then;
-      then = error;
-      error = complete;
-      complete = _depMap;
-    } else if (isObject(error)) {
-      _depMap = depMap;
-      depMap = error;
-      error = complete;
-      complete = _depMap;
-    } else if (isObject(complete)) {
-      _depMap = depMap;
-      depMap = complete;
-      complete = _depMap;
-    }
-    depMap = isObject(_depMap) ? depMap : UNDEFINED;
-    if (isFunc(then) || isFunc(error) || isFunc(complete)) {
-      paths = isArray(paths) ? paths : [paths]
-    }
-    if (isArray(paths)) {
-      requireModule(currentDir, paths, depMap, function (args, err) {
-        if (err.length) {
-          if (isFunc(error)) {
-            tryCall(error, err)
-          }
-        } else if (isFunc(then)) {
-          tryCall(then, args, 1)
-        } else {
-          complete(args, err);
-        }
-      });
-      return;
-    }
-    return requireModule(currentDir, paths, depMap);
-  }
-
-  function setSyncs(module, value) {
-    if (isFunc(value)) {
-      /* var syncsOption = module[syncsOptionName], l;
-       if (syncsOption && (l = syncsOption.length)) {
-         value = assign({define: value}, syncsOption[l - 1]);
-        module[syncsOptionName] = UNDEFINED;
-       }*/
-      var syncsOption = module[syncsOptionName];
-      if (syncsOption) {
-        value = assign({define: value}, syncsOption);
-        module[syncsOptionName] = UNDEFINED;
-      }
-    }
-    module[syncsName].push(value)
-  }
-
-  function setSyncsOption(module, deps) {
-    var depMap = deps.pop();
-    if (!isObject(depMap)) {
-      deps.push(depMap);
-      depMap = UNDEFINED
-    }
-    if (depMap || deps.length) {
-      /*var syncsOption = module[syncsOptionName];
-      if (!syncsOption) {
-        syncsOption = module[syncsOptionName] = [];
-      }
-      syncsOption.push({
-        depMap: depMap,
-        require: deps,
-      });*/
-      module[syncsOptionName] = {
-        depMap: depMap,
-        require: deps,
-      };
-    }
-  }
-
-  window.require = function (paths, then, error, depMap) {
-    if (isArray(paths) && (then === TRUE || then === FALSE) && error == NULL && depMap == NULL) {
-      if (then === TRUE) {
-        setSyncsOption(publicModule, paths);
-        return
-      } else {
-        return paths;
-      }
-    }
-    return requireMain(getBaseUrl(), paths, then, error, depMap)
-  };
-  var publicRequire = window.require;
-  publicRequire.config = setConfig;
-
   function tryDelete(obj, name) {
-    if (name in obj) {
+    if (obj && name in obj) {
+      obj[name] = UNDEFINED;
       try {
-        obj[name] = UNDEFINED;
         delete obj[name];
       } catch (e) {
       }
     }
   }
 
-  function tryCall(func, args, isApply) {
-    var nonApply = !isApply;
-    if (isFunc(func)) {
-      try {
-        if (nonApply) {
-          func(args)
+  var currentScriptLoadQueue = NULL;
+
+  var publicConfig = {
+      timeout: 20e3,
+      baseUrl: currentBaseUrl,
+      baseDir: toDir(currentBaseUrl),
+      alias: {},
+      paths: {},
+      modules: {}
+    },
+    modules = {};
+
+  function setPublicConfig(config) {
+    if (!config) {
+      return
+    }
+    var timeout = config.timeout,
+      baseUrl = config.baseUrl || "",
+      alias = config.alias || {},
+      paths = config.paths || {},
+      shim = config.shim || {};
+
+    if (isFinite(timeout)) {
+      publicConfig.timeout = timeout
+    }
+    if (isString(baseUrl) && publicConfig.baseUrl !== baseUrl) {
+      publicConfig.baseUrl = baseUrl;
+      publicConfig.baseDir = toDir(baseUrl)
+    }
+    var baseDir = publicConfig.baseDir;
+    var pc_modules = publicConfig.modules, pc_paths = publicConfig.paths, pc_alias = publicConfig.alias;
+
+    for (var n in alias) {
+      if (alias.hasOwnProperty(n)) {
+        pc_alias[n] = toAbsPath(alias[n], baseDir)
+      }
+    }
+    for (n in paths) {
+      if (paths.hasOwnProperty(n)) {
+        setModulesConfigByPath(pc_modules, pc_paths, n, paths[n], baseDir);
+      }
+    }
+    for (n in shim) {
+      if (shim.hasOwnProperty(n)) {
+        setModulesConfigByShim(pc_modules, pc_paths, n, shim[n], baseDir);
+      }
+    }
+
+  }
+
+  function replaceAliasToPath(path) {
+    return path.replace(/^([@~][^\/\\])[\/\\]/, function (m, n) {
+      return publicConfig.alias[n] || m
+    });
+  }
+
+  function getOrSetObj(obj, name) {
+    return obj[name] || (obj[name] = {})
+  }
+
+  function getPCPath(path, name, pc_paths, baseDir, toId) {
+    path = path || name;
+    var _path = (pc_paths || modules.paths)[path];
+    if (_path) {
+      return _path
+    }
+    _path = toAbsJsPath(replaceAliasToPath(path), baseDir);
+    return toId ? toLowerCaseUrl(_path) : _path
+  }
+
+  function getPCMByPath(path, baseDir) {
+    var abs_path = publicConfig.paths[path];
+    if (!abs_path) {
+      abs_path = toAbsJsPath(replaceAliasToPath(path), baseDir);
+    }
+    var id_path = toLowerCaseUrl(abs_path)
+    return {
+      id: id_path,
+      config: publicConfig.modules[id_path],
+      path: abs_path
+    }
+  }
+
+
+  function setModulesConfigByPath(pc_modules, pc_paths, name, path, baseDir) {
+    if (isString(path)) {
+      var paths = path.split("#");
+      var ver = paths[1];
+      path = getPCPath(paths[0], name, pc_paths, baseDir)
+      var id_path = toLowerCaseUrl(path)
+      if (name !== path) {
+        pc_paths[name] = id_path;
+      }
+      var module = getOrSetObj(pc_modules, id_path);
+      module.path = path + (path.indexOf('?') > -1 ? '' : '?') + '&__js_ver__' + ver;
+    } else if (path === NULL) {
+      path = pc_paths[name];
+      if (path) {
+        tryDelete(pc_paths, name);
+        tryDelete(pc_modules, path);
+      }
+    }
+  }
+
+  function setModulesConfigByShim(pc_modules, pc_paths, name, shim, baseDir) {
+    var module = getOrSetObj(pc_modules, getPCPath(pc_paths[name], name, pc_paths, baseDir, TRUE));
+    if (isArray(shim)) {
+      shim = {deps: shim}
+    }
+
+    module.deps = shim.deps;
+    module.exports = shim.exports;
+  }
+
+  function getBaseDirByOption(descOption) {
+    return descOption && isString(descOption.baseUrl) ? toDir(descOption.baseUrl) : publicConfig.baseDir
+  }
+
+  function privateDefine(currentDir, currentId, privateModule, name, deps, factory, options, complete) {
+    if (!deps || !deps.length) {
+      privateModule.define(name, factory);
+      complete();
+    } else {
+      var id = privateModule.getId(name);
+      if (!modules[id]) {
+        addRequireLoadQueue(id);
+      }
+      privateRequire(currentDir, currentId, privateModule, deps, function () {
+        privateModule.defineById(id, factory, arguments);
+        complete();
+        privateModule = factory = id = complete = NULL;
+      }, function (error, errorId) {
+        privateModule.errorById(id, error, errorId)
+        complete();
+        privateModule = factory = id = complete = NULL;
+      }, options)
+    }
+  }
+
+  function eachCurrentScriptLoadQueue(isLoad, currentDir, currentId, autoSave, error, errorId) {
+    var queue = currentScriptLoadQueue || [];
+    currentScriptLoadQueue = NULL;
+    var privateModule = createPrivateModule(currentDir, currentId);
+    var config = publicConfig.modules[currentId];
+    if (config) {
+      var exports = config.exports;
+      if (isString(exports)) {
+        exports = function () {
+          return window[exports]
+        }
+      }
+      if (exports !== UNDEFINED) {
+        queue.push({isDefine: TRUE, params: [UNDEFINED, config.deps, exports]})
+      }
+    }
+    var length = queue.length, count = 0;
+
+    function complete() {
+      if (autoSave && ++count >= length) {
+        if (isLoad) {
+          privateModule.save()
         } else {
-          func.apply(NULL, args)
+          privateModule.errorById(currentId, error || "加载模块文件失败", errorId || currentId)
         }
-
-      } catch (e) {
-        CONSOLE.error(e)
+        privateModule = NULL;
       }
     }
-  }
 
-  function tryCallRet(func, args, isApply, thisArg) {
-    var nonApply = !isApply;
-    if (isFunc(func)) {
-      try {
-        return {state: TRUE, ret: nonApply ? func(args) : func.apply(thisArg, args)};
-      } catch (e) {
-        CONSOLE.error(e);
-        return {state: FALSE, error: e.message}
-      }
-    }
-  }
-
-  /*  function tryCallTrue(func, args, isApply) {
-      var nonApply = !isApply;
-      if (isFunc(func)) {
-        try {
-          if (nonApply) {
-            func(args)
-          } else {
-            func.apply(NULL, args)
-          }
-          return TRUE;
-        } catch (e) {
-          CONSOLE.error(e)
+    if (length && isLoad) {
+      var item, params, name;
+      for (var i = 0; i < length; i++) {
+        item = queue[i];
+        params = item.params;
+        if (item.isRequire) {
+          requireMain(currentDir, params[0], params[1], params[2], currentId, privateModule, complete);
+        } else {
+          name = params[0];
+          privateDefine(currentDir, privateModule.getId(name), privateModule.toModuleByPath(name), name, params[1], params[2], params[3], complete)
         }
       }
-    }*/
-
-  /* function funcCall(func, args, isApply) {
-     return tryCall(func, args, isApply)
-   }
- */
-
-  function isFunc(func) {
-    return func && typeof func === "function";
-  }
-
-  function getExportsCacheCall(id, callback) {
-    var module = getExportsCacheValue(id);
-    if (module) {
-      if (callback) {
-        callback(module.value);
-      }
-      return module;
-    }
-  }
-
-  function isNotCachePath(path) {
-    return /#[\s\S]*!cache/i.test(path)
-  }
-
-  function requireModuleOne(currentDir, path, depMap, complete) {
-    var notCache = isNotCachePath(path), canCache = !notCache, module = canCache && getExportsCacheCall(toNoHashUrl(path), complete = complete || FALSE);
-    if (module) {
-      return module.value;
-    }
-    var deps = depMap && depMap[path], info;
-    if (!deps) {
-      info = getModuleInfo(path, currentDir, complete)
     } else {
-      var params;
-      if (isObject(deps) && !isArray(deps)) {
-        params = deps.params;
-        deps = deps.deps;
-        path = deps.path || path;
-      }
+      complete(count = length)
+    }
+  }
 
-      info = path[0] === '@' ? getModuleInfo(path, currentDir, complete) : {
-        deps: deps,
-        notCache: notCache,
-        canCache: canCache,
-        path: toAbsJsPath(path, currentDir)
-      };
-      if (params !== UNDEFINED) {//覆盖 参数
-        if (info.params !== UNDEFINED) {
-          info.originalParams = info.params;
-        }
-        info.params = params;
+  function nonEmpty(obj) {
+    for (var k in obj) {
+      if (hasOwn.call(obj, k)) {
+        return TRUE
       }
     }
-    module = info.module || getExportsCache(info.path, complete);
+    return FALSE
+  }
+
+  function getModuleById(id) {
+    var module = modules[id]
     if (module) {
-      return module.value;
+      if (module.error) {
+        CONSOLE.error('模块 [' + id + '] ' + module.error + '。')
+      } else {
+        return module.value
+      }
     }
-    deps = info.deps;
-    var requireMethod = function () {
-      var _info = info, _complete = complete;
-      info = complete = UNDEFINED;
-      execRequireModule(_info, _complete)
+  }
+
+  function createPrivateModule(currentDir, currentId) {
+    var exports, _exports = exports = {};
+    var save = function (id, module, error, errorId) {
+      id = id || currentId;
+      var value = !error && module === UNDEFINED && id === currentId && (exports !== _exports || nonEmpty(exports)) ? exports : module;
+      exportModule(id, value, error, errorId, arguments.length !== 0)
     };
-    if (!deps) {
-      requireMethod();
-    } else {
-      requireModule(deps, depMap, requireMethod)
+    var toUrl = function (url) {
+      if (!url) {
+        return currentDir
+      }
+      var module = getPCMByPath(url);
+      return module.config && module.config.path || module.path
     }
-  }
-
-
-  function execRequireModule(info, complete) {
-    var methodsMatch = info.originalPath.match(/#[\s\S]*\.([a-zA-Z0-9_]+)\(([^()]*)\)[\s\S]*$/), methodName, params;
-    if (methodsMatch) {
-      methodName = methodsMatch[1];
-      params = methodsMatch[2].trim();
-    }
-    if (!methodName) {
-      methodsMatch = info.path.match(/\.([a-zA-Z0-9]+)(\?[\s\S]*)*$/);
-      if (methodsMatch) {
-        methodName = methodsMatch[1]
+    var getId = function (path) {
+      if (isString(path) && path) {
+        return getPCPath(path, NULL, NULL, currentDir, TRUE)
+      } else {
+        return currentId
       }
     }
-
-    var method = publicModule.plugins[methodName] || publicModule.plugins[methodName = 'js'];
-    if (isFunc(method)) {
-      method(info, complete, params)
-    } else if (isFunc(complete)) {
-      var error = '"module.plugins.' + methodName + '"不是一个函数';
-      complete(UNDEFINED, {path: info.path, type: 'TypeError', error: error})
+    var define = function (path, factory, args) {
+      if (arguments.length === 1) {
+        factory = path;
+        path = NULL;
+      }
+      defineById(getId(path), factory, args);
     }
-
+    var defineById = function (id, factory, args) {
+      try {
+        save(id, isFunction(factory) ? args ? factory.apply(NULL, args) : factory() : factory);
+      } catch (e) {
+        CONSOLE.error('模块 [' + id + '] 定义失败。', e);
+        errorById(id, '模块定义失败', id)
+      }
+    }
+    var errorById = function (id, error, errorId) {
+      save(id, UNDEFINED, error, errorId)
+    }
+    var privateModule = {
+      save: save,
+      defineById: defineById,
+      toModuleByPath: function (path) {
+        return path && isString(path) ? createPrivateModule(currentDir, getId(path)) : privateModule;
+      },
+      getId: getId,
+      error: function (path, error, errorId) {
+        errorById(getId(path), error, errorId)
+      },
+      errorById: errorById,
+      define: define,
+      require: function require(paths, then, error, pathsDescOption) {
+        if (arguments.length < 2 && isString(paths)) {
+          var id = getId(paths);
+          return getModuleById(id)
+        } else {
+          privateRequire(currentDir, currentId, privateModule, paths, then, error, pathsDescOption)
+        }
+      },
+      module: {
+        toUrl: toUrl,
+        get exports() {
+          return exports;
+        },
+        set exports(value) {
+          exports = value;
+        }
+      },
+      get exports() {
+        return exports
+      }
+    }
+    return privateModule;
   }
 
-  function createRequireEachCallback(callback, index) {
-    return function (module, error) {
-      callback(index, module, error)
-    }
+  function requireJS(src, currentId, currentDir, error, errorId) {
+    currentDir = toDir(src);
+    setTimeout(function () {
+      currentScriptLoadQueue = NULL;
+      var load = function (isLoad) {
+        if (requireOnload) {
+          requireOnload(isLoad, currentDir, currentId, error, errorId)
+        } else {
+          eachCurrentScriptLoadQueue(isLoad, currentDir, currentId, TRUE, error, errorId);
+        }
+      }
+      if (error) {
+        load(FALSE)
+      } else {
+        includeScript(src, load)
+      }
+    })
   }
 
-  /**
-   *
-   * @param currentDir
-   * @param paths
-   * @param depMap
-   * @param complete
-   */
-  var requireModule = function (currentDir, paths, depMap, complete) {
-    if (isArray(paths)) {
-      if (paths.length === 0) {
-        complete([]);
+  var modulePlugins = {}
+
+  var require_str = "require", define_str = "define", module_str = "module", exports_str = "exports";
+  var sync_str_arr = [require_str, define_str, module_str, exports_str];
+  var requireOnload;
+
+  function pushToLoadQueue(baseDir, item) {
+    if (!requireOnload) {
+      requireOnload = function (isLoad, currentDir, currentId, error, errorId) {
+        if (requireOnload) {
+          var sid = requireOnload.sid;
+          if (sid) {
+            clearTimeout(sid)
+            requireOnload.sid = NULL;
+          }
+          requireOnload = NULL;
+        }
+        eachCurrentScriptLoadQueue(isLoad, currentDir, currentId, TRUE, error, errorId);
+      }
+      requireOnload.sid = setTimeout(function () {
+        if (requireOnload) {
+          requireOnload.sid = NULL;
+          requireOnload(TRUE, baseDir)
+        }
+      });
+    }
+    (currentScriptLoadQueue = currentScriptLoadQueue || []).push(item);
+  }
+
+  function privateRequire(currentDir, currentId, privateModule, paths, then, error, pathsDescOption) {
+    if (isString(paths)) {
+      /*if (!then && !error) {
         return;
-      }
-      var arr = [], err = [], length = paths.length;
-      var callback = function (index, module, error) {
-        arr[index] = module;
-        if (error) {
-          err.push(error)
-        }
-        if (--length <= 0) {
-          complete(arr, err)
-        }
-      };
-      for (var i = 0, path; i < length; i++) {
-        requireModuleOne(currentDir, path = paths[i], depMap, createRequireEachCallback(callback, i, path))
-      }
-      return;
+      }*/
+      paths = [paths];
+    } else if (isFunction(paths) && !error) {
+      pathsDescOption = error;
+      error = then;
+      then = paths;
+      paths = sync_str_arr;
+    } else if (isObject(then)) {
+      pathsDescOption = then;
+      error = then = UNDEFINED;
+    } else if (isObject(error)) {
+      pathsDescOption = error;
+      error = UNDEFINED;
     }
-    return requireModuleOne(currentDir, paths, depMap, complete)
+    var baseDir = currentDir || getBaseDirByOption(pathsDescOption);
+    var requires = [], isSync = FALSE;
+    pathsDescOption = pathsDescOption || {}
+    var pc_paths = publicConfig.paths;
+    paths = isArray(paths) ? paths : [];
+    for (var i = 0, l = paths.length, path; i < l; i++) {
+      path = paths[i];
+      if (sync_str_arr.indexOf(path) > -1) {
+        requires.push(path);
+        isSync = TRUE;
+      } else {
+        isSync = isSync || !pc_paths[path];
+        requires.push({path: path, option: pathsDescOption[path]})
+      }
+    }
+    if (isSync && !currentDir) {
+      pushToLoadQueue(baseDir, {isRequire: TRUE, params: [requires, then, error]});
+    } else {
+      requireMain(baseDir, requires, then, error, currentId, privateModule || l && createPrivateModule(baseDir, currentId))
+    }
 
+  }
+
+  var publicRequire = win.require = function (paths, then, error, pathsDescOption) {
+    privateRequire(NULL, NULL, NULL, paths, then, error, pathsDescOption)
+  }
+
+  publicRequire.config = publicRequire.setConfig = function (config) {
+    setPublicConfig(config)
   };
+  publicRequire.ACMD = TRUE;
+  publicRequire.setPlugins = function (name, main) {
+    if (/^[0-9a-z_]+$/i.test(name)) {
+      modulePlugins[name] = main
+    } else {
+      CONSOLE.error('无效的插件名 ' + name + ',插件名应由 0-9、a-Z、_ 组成。')
+    }
+  }
+  var requireLoadQueue = {};
 
-  publicRequire.ACDM = TRUE;
-  cacheModule('require', publicRequire);
-  cacheModule('module', publicModule);
+  function eachRequireLoadQueue(id, module, error, errorId) {
+    var queue = requireLoadQueue[id];
+    if (queue && id) {
+      tryDelete(requireLoadQueue, id);
+      for (var i = 0, l = queue.length, func; i < l; i++) {
+        if ((func = queue[i])) {
+          func(module, error, errorId)
+        }
+      }
+    }
+  }
+
+  function exportModule(id, module, error, errorId, existErrorLog) {
+    if (!id) {
+      //CONSOLE.error('无效的模块Id [' + id + ']。')
+    } else if (!modules[id]) {
+      module = {value: module, error: error, errorId: errorId};
+      modules[id] = module;
+      eachRequireLoadQueue(id, module.value, error, errorId);
+    } else if (existErrorLog) {
+      CONSOLE.error('模块 [ ' + id + ' ] 已存在，不能重复定义。')
+    }
+  }
+
+  function requireMain(currentDir, requires, then, error, currentId, privateModule, complete) {
+    var length = requires.length;
+    if (length === 0) {
+      if (isFunction(then)) {
+        then();
+      }
+    } else {
+      var count = 0, isComplete, _modules = [];
+      var load = function (index, module, err, id) {
+        _modules[index] = module
+        if (isComplete) {
+          return
+        }
+        if (++count >= length || err) {
+          isComplete = TRUE;
+          try {
+            if (err) {
+              if (isFunction(error)) {
+                error(err, id)
+              }
+            } else {
+              if (isFunction(then)) {
+                then.apply(NULL, _modules);
+              }
+            }
+          } catch (e) {
+            CONSOLE.error(e)
+          }
+          if (isFunction(complete)) {
+            complete();
+          }
+
+          then = error = complete = NULL
+        }
+      }
+      for (var i = 0, item, path, pluginName, pcm, module, id, method; i < length; i++) {
+        item = requires[i];
+        if (isString(item)) {
+          load(i, privateModule[item]);
+          continue;
+        }
+        path = item.path;
+        if (!path || !isString(path)) {
+          var _module;
+          if (isFunction(path)) {
+            try {
+              _module = path();
+            } catch (e) {
+              CONSOLE.error(e)
+            }
+          }
+          load(i, _module)
+          continue;
+        }
+        pluginName = path.match(/^([0-9a-z_]+)!([\s\S]*)/i);
+        if (pluginName) {
+          path = pluginName[2].replace(/\s+/g, '')
+          method = modulePlugins[pluginName = pluginName[1]]
+        } else {
+          pluginName = "未知";
+          method = requireJS;
+        }
+        if (!path) {
+          load(i, UNDEFINED)
+          continue;
+        }
+        if (!isFunction(method)) {
+          load(i, UNDEFINED, "无效的插件方法 [" + pluginName + "]", path)
+          continue;
+        }
+        pcm = getPCMByPath(path, currentDir);
+        if ((module = modules[id = pcm.id])) {
+          load(i, module.value, module.error, module.errorId)
+        } else {
+          addToRequireLoadQueue(id, load, i, currentDir, method, pcm, item.option);
+        }
+      }
+    }
+  }
+
+  function addRequireLoadQueue(id) {
+    var queue = requireLoadQueue[id];
+    if (!queue) {
+      queue = requireLoadQueue[id] = [];
+      queue.isFirst = TRUE;
+    } else if (queue.isFirst) {
+      queue.isFirst = FALSE;
+    }
+    return queue
+  }
+
+  function addToRequireLoadQueue(id, load, index, currentDir, method, pcm, option) {
+    var queue = addRequireLoadQueue(id), isFirst = queue.isFirst;
+    var sid, callback = function (module, error, errorId) {
+      if (sid) {
+        clearTimeout(sid);
+        sid = NULL;
+      }
+      callback = NULL;
+      load(index, module, error, errorId)
+      index = load = NULL;
+    };
+    var timeout = publicConfig.timeout, path;
+    var require = function (error, errorId) {
+      sid = setTimeout(function () {
+        var queue = requireLoadQueue[id], index;
+        if (queue && (index = queue.indexOf(callback)) > -1) {
+          queue.splice(index, 1)
+          callback(UNDEFINED, "请求超时", id);
+          id = NULL;
+        }
+      }, timeout);
+      if (isFirst) {
+        try {
+          method(path, id, currentDir, error, errorId, option, exportModule, eachRequireLoadQueue)
+        } catch (e) {
+          eachRequireLoadQueue(id, UNDEFINED, '请求失败', errorId);
+        }
+        method = NULL;
+      }
+    }
+    queue.push(callback);
+    if (isFirst) {
+      var config = pcm.config;
+      var deps;
+      if (config) {
+        path = config.path;
+        deps = config.deps;
+      }
+      if (!path) {
+        path = pcm.path;
+      }
+      if (deps) {
+        privateRequire(currentDir, id, NULL, deps, function () {
+          require()
+        }, function (error, errorId) {
+          require(error, errorId)
+        })
+        return
+      }
+    }
+    require();
+  }
+
+
+  //require, exports, module,define
+  var define = win.define = function (name, deps, factory, pathsDescOption) {
+    var argLen = arguments.length;
+    if (argLen < 2) {
+      factory = name;
+      deps = name = UNDEFINED;
+    } else if (argLen < 4) {
+      if (!isString(name)) {
+        pathsDescOption = factory;
+        factory = deps;
+        deps = name;
+        name = UNDEFINED;
+      } else if (!isArray(deps)) {
+        pathsDescOption = factory;
+        factory = deps;
+        deps = UNDEFINED;
+      }
+    }
+    pushToLoadQueue(getBaseDirByOption(pathsDescOption), {isDefine: TRUE, params: [name, deps, factory, pathsDescOption]})
+  }
+  define.amd = {toDir: toDir};
+
   if (mainPath) {
-    requireModule(mainPath);
+    publicRequire([mainPath])
+  }
+}();
+
+void function () {
+  if (typeof module !== "object" || !module) {
+    try {
+      window.module = {
+        set exports(value) {
+          define(function () {
+            return value;
+          })
+        },
+        get exports() {
+          var _exports = {};
+          define(_exports);
+          return _exports;
+        }
+      }
+    } catch (e) {
+
+    }
   }
 }();
