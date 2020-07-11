@@ -87,7 +87,7 @@ void function () {
   }
 
   function toAbsJsPath(path, currentDir) {
-    return toAbsPath(toJsPath(toNoHashUrl(path)), currentDir)
+    return toAbsPath(toJsPath(toNoHashUrl(path)), currentDir).replace(/\?+&*$/, '')
   }
 
 
@@ -133,43 +133,6 @@ void function () {
     },
     modules = {};
 
-  function setPublicConfig(config) {
-    if (!config) {
-      return
-    }
-    var timeout = config.timeout,
-      baseUrl = config.baseUrl || "",
-      alias = config.alias || {},
-      paths = config.paths || {},
-      shim = config.shim || {};
-
-    if (isFinite(timeout)) {
-      publicConfig.timeout = timeout
-    }
-    if (isString(baseUrl) && publicConfig.baseUrl !== baseUrl) {
-      publicConfig.baseUrl = baseUrl;
-      publicConfig.baseDir = toDir(baseUrl)
-    }
-    var baseDir = publicConfig.baseDir;
-    var pc_modules = publicConfig.modules, pc_paths = publicConfig.paths, pc_alias = publicConfig.alias;
-
-    for (var n in alias) {
-      if (alias.hasOwnProperty(n)) {
-        pc_alias[n] = toAbsPath(alias[n], baseDir)
-      }
-    }
-    for (n in paths) {
-      if (paths.hasOwnProperty(n)) {
-        setModulesConfigByPath(pc_modules, pc_paths, n, paths[n], baseDir);
-      }
-    }
-    for (n in shim) {
-      if (shim.hasOwnProperty(n)) {
-        setModulesConfigByShim(pc_modules, pc_paths, n, shim[n], baseDir);
-      }
-    }
-
-  }
 
   function replaceAliasToPath(path) {
     return path.replace(/^([@~][^\/\\])[\/\\]/, function (m, n) {
@@ -183,7 +146,8 @@ void function () {
 
   function getPCPath(path, name, pc_paths, baseDir, toId) {
     path = path || name;
-    var _path = (pc_paths || modules.paths)[path];
+    name = name || path;
+    var _path = (pc_paths || publicConfig.paths)[name];
     if (_path) {
       return _path
     }
@@ -212,10 +176,10 @@ void function () {
       path = getPCPath(paths[0], name, pc_paths, baseDir)
       var id_path = toLowerCaseUrl(path)
       if (name !== path) {
-        pc_paths[name] = id_path;
+        pc_paths[name || path] = id_path;
       }
-      var module = getOrSetObj(pc_modules, id_path);
-      module.path = path + (path.indexOf('?') > -1 ? '' : '?') + '&__js_ver__' + ver;
+      var module = getOrSetObj(pc_modules, id_path), index = path.indexOf('?');
+      module.path = path + (index > -1 ? '' : '?') + (index === -1 || index === path.length - 1 ? '' : '&') + '__js_ver__' + ver;
     } else if (path === NULL) {
       path = pc_paths[name];
       if (path) {
@@ -455,12 +419,13 @@ void function () {
         return;
       }*/
       paths = [paths];
-    } else if (isFunction(paths) && !error) {
+    } else if (isFunction(paths) && !isFunction(error)) {
       pathsDescOption = error;
       error = then;
       then = paths;
       paths = sync_str_arr;
-    } else if (isObject(then)) {
+    }
+    if (isObject(then)) {
       pathsDescOption = then;
       error = then = UNDEFINED;
     } else if (isObject(error)) {
@@ -494,8 +459,41 @@ void function () {
     privateRequire(NULL, NULL, NULL, paths, then, error, pathsDescOption)
   }
 
-  publicRequire.config = publicRequire.setConfig = function (config) {
-    setPublicConfig(config)
+  publicRequire.config = publicRequire.setConfig = function setPublicConfig(config) {
+    if (isObject(config)) {
+      var timeout = config.timeout,
+        baseUrl = config.baseUrl,
+        alias = config.alias || {},
+        paths = config.paths || {},
+        shim = config.shim || {};
+
+      if (isFinite(timeout)) {
+        publicConfig.timeout = timeout
+      }
+      if (isString(baseUrl) && publicConfig.baseUrl !== baseUrl) {
+        publicConfig.baseUrl = baseUrl;
+        publicConfig.baseDir = toDir(baseUrl)
+      }
+      var baseDir = publicConfig.baseDir;
+      var pc_modules = publicConfig.modules, pc_paths = publicConfig.paths, pc_alias = publicConfig.alias;
+
+      for (var n in alias) {
+        if (alias.hasOwnProperty(n)) {
+          pc_alias[n] = toAbsPath(alias[n], baseDir)
+        }
+      }
+      for (n in paths) {
+        if (paths.hasOwnProperty(n)) {
+          setModulesConfigByPath(pc_modules, pc_paths, n, paths[n], baseDir);
+        }
+      }
+      for (n in shim) {
+        if (shim.hasOwnProperty(n)) {
+          setModulesConfigByShim(pc_modules, pc_paths, n, shim[n], baseDir);
+        }
+      }
+    }
+    return publicConfig
   };
   publicRequire.ACMD = TRUE;
   publicRequire.setPlugins = function (name, main) {
