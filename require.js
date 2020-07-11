@@ -87,7 +87,7 @@ void function () {
   }
 
   function toAbsJsPath(path, currentDir) {
-    return toAbsPath(toJsPath(toNoHashUrl(path)), currentDir).replace(/\?+&*$/, '')
+    return toAbsPath(toJsPath(toNoHashUrl(path)), currentDir).replace(/(\?+&*|&+)$/, '')
   }
 
 
@@ -694,7 +694,16 @@ void function () {
     }
     pushToLoadQueue(getBaseDirByOption(pathsDescOption), {isDefine: TRUE, params: [name, deps, factory, pathsDescOption]})
   }
-  define.amd = {toDir: toDir};
+  define.amd = {
+    toDir: toDir,
+    toAbsUrl: toAbsUrl,
+    toAbsPath: toAbsPath,
+    toAbsJsPath: toAbsJsPath,
+    toJsPath: toJsPath,
+    toLowerCaseUrl: toLowerCaseUrl,
+    toNoHashUrl: toNoHashUrl,
+    toOriginUrl: toOriginUrl
+  };
 
   if (mainPath) {
     publicRequire([mainPath])
