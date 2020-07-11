@@ -459,7 +459,7 @@ void function () {
     privateRequire(NULL, NULL, NULL, paths, then, error, pathsDescOption)
   }
 
-  publicRequire.config = publicRequire.setConfig = function setPublicConfig(config) {
+  publicRequire.config = publicRequire.setConfig = function (config) {
     if (isObject(config)) {
       var timeout = config.timeout,
         baseUrl = config.baseUrl,
