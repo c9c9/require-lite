@@ -8,9 +8,9 @@ void function () {
   if (isFunction(req) && req.ACMD) {
     return
   }
-  var OBJ = Object, doc = document, script = doc.getElementById('ACMD-DST') || doc.currentScript,
+  var ArraySlice = Array.prototype.slice, doc = document, script = doc.getElementById('ACMD-DST') || doc.currentScript,
     UNDEFINED = undefined, NULL = null, FALSE = false, TRUE = true, CONSOLE = console;
-  var hasOwn = OBJ.prototype.hasOwnProperty, isArray = Array.isArray;//, assign = OBJ.assign, arrayConcat = Array.prototype.concat
+  var hasOwn = Object.prototype.hasOwnProperty, isArray = Array.isArray;//, assign = OBJ.assign, arrayConcat = Array.prototype.concat
   var head = doc.head || doc.getElementsByTagName('head')[0]
     , base = doc.createElement('base');
   var mainPath, currentPath, pageBasePath = getPageBasePath();
@@ -329,6 +329,19 @@ void function () {
     var errorById = function (id, error, errorId) {
       save(id, UNDEFINED, error, errorId)
     }
+
+    function require(paths, then, error, pathsDescOption) {
+      if (arguments.length < 2 && isString(paths)) {
+        var id = getId(paths);
+        return getModuleById(id)
+      } else {
+        privateRequire(currentDir, currentId, privateModule, paths, then, error, pathsDescOption)
+      }
+    }
+
+    require.promise = function (paths, pathsDescOption) {
+      return toRequirePromise(require, paths, pathsDescOption)
+    }
     var privateModule = {
       save: save,
       defineById: defineById,
@@ -341,14 +354,7 @@ void function () {
       },
       errorById: errorById,
       define: define,
-      require: function require(paths, then, error, pathsDescOption) {
-        if (arguments.length < 2 && isString(paths)) {
-          var id = getId(paths);
-          return getModuleById(id)
-        } else {
-          privateRequire(currentDir, currentId, privateModule, paths, then, error, pathsDescOption)
-        }
-      },
+      require: require,
       module: {
         toUrl: toUrl,
         get exports() {
@@ -459,6 +465,22 @@ void function () {
     privateRequire(NULL, NULL, NULL, paths, then, error, pathsDescOption)
   }
 
+
+  function toPromiseCall(func) {
+    return function () {
+      func(ArraySlice.call(arguments))
+    };
+  }
+
+  function toRequirePromise(require, paths, pathsDescOption) {
+    return new Promise(function (resolve, reject) {
+      require(paths, toPromiseCall(resolve), toPromiseCall(reject), pathsDescOption)
+    })
+  }
+
+  publicRequire.promise = function (paths, pathsDescOption) {
+    return toRequirePromise(publicRequire, paths, pathsDescOption)
+  }
   publicRequire.config = publicRequire.setConfig = function (config) {
     if (isObject(config)) {
       var timeout = config.timeout,
